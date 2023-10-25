@@ -114,7 +114,7 @@ def train_test_split(X, y, test_size=0.5, shuffle=True, seed=None):
     return X_train, X_test, y_train, y_test
 
 
-def train_cv_test_split(X, y, shuffle=True, seed=None):
+def train_cv_test_split_fed(X, y, shuffle=True, seed=None):
     """ Split the data into train and test sets """
     if shuffle:
         X, y = shuffle_data(X, y, seed)
@@ -131,6 +131,23 @@ def train_cv_test_split(X, y, shuffle=True, seed=None):
         , X_cv[:, :n_features // 2], X_cv[:, n_features // 2:], X_test[:, :n_features // 2], X_test[:, n_features // 2:]
 
     return XA_train, XB_train, XA_cv, XB_cv, XA_test, XB_test, y_train, y_cv, y_test
+
+
+def train_cv_test_split(X, y, shuffle=True, seed=None):
+    """ Split the data into train and test sets """
+    if shuffle:
+        X, y = shuffle_data(X, y, seed)
+    train_size = 0.6
+    cv_size = 0.2
+    # Split the training data from test data in the ratio specified in
+    # test_size
+    m_samples, n_features = X.shape
+    split_i1 = int(m_samples * train_size)
+    split_i2 = int(m_samples * (train_size + cv_size))
+    X_train, X_cv, X_test = X[:split_i1], X[split_i1:split_i2], X[split_i2:]
+    y_train, y_cv, y_test = y[:split_i1], y[split_i1:split_i2], y[split_i2:]
+
+    return X_train, X_cv, X_test, y_train, y_cv, y_test
 
 
 def k_fold_cross_validation_sets(X, y, k, shuffle=True):

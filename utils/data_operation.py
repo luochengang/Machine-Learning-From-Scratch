@@ -52,6 +52,13 @@ def accuracy_score(y_true, y_pred):
     return accuracy
 
 
+def calculate_loss(y, y_pred):
+    """ Compare y_true to y_pred and return the accuracy """
+    loss = np.mean(0.5 * (y_pred - y) ** 2)
+    return loss
+
+
+
 def calculate_covariance_matrix(X, Y=None):
     """ Calculate the covariance matrix for the dataset X """
     if Y is None:

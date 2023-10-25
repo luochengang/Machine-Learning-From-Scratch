@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.datasets import make_regression
+from sklearn.datasets import fetch_california_housing
 
-from utils import train_test_split
+from utils import train_test_split, train_cv_test_split, calculate_loss
 from utils import mean_squared_error, Plot
 
 # L1正则化
@@ -51,15 +52,11 @@ class LinearRegression():
         若使用了正则化，暂只支持梯度下降
     """
 
-    def __init__(self, n_iterations=3000, learning_rate=0.00005, regularization=None, gradient=True):
+    def __init__(self, n_iterations=3000, learning_rate=0.01, alpha=0.02):
         self.n_iterations = n_iterations
         self.learning_rate = learning_rate
-        self.gradient = gradient
-        if regularization == None:
-            self.regularization = lambda x: 0
-            self.regularization.grad = lambda x: 0
-        else:
-            self.regularization = regularization
+        self.alpha = alpha
+        self.scaling_X = None
 
     def initialize_weights(self, n_features):
         # 初始化参数
@@ -74,26 +71,24 @@ class LinearRegression():
         X = np.insert(X, 0, 1, axis=1)
         y = np.reshape(y, (m_samples, 1))
         self.training_errors = []
-        if self.gradient == True:
-            # 梯度下降
-            for i in range(self.n_iterations):
-                y_pred = X.dot(self.w)
-                loss = np.mean(0.5 * (y_pred - y) ** 2) + self.regularization(self.w) #计算loss
-                # print(loss)
-                self.training_errors.append(loss)
-                w_grad = X.T.dot(y_pred - y) + self.regularization.grad(self.w)  # (y_pred - y).T.dot(X)，计算梯度
-                self.w = self.w - self.learning_rate * w_grad #更新权值w
-        else:
-            # 正规方程
-            X = np.matrix(X)
-            y = np.matrix(y)
-            X_T_X = X.T.dot(X)
-            X_T_X_I_X_T = X_T_X.I.dot(X.T)
-            X_T_X_I_X_T_X_T_y = X_T_X_I_X_T.dot(y)
-            self.w = X_T_X_I_X_T_X_T_y
+        # 计算每列的平均值
+        self.scaling_X = np.mean(X, axis=0)
+        X = X / self.scaling_X
+
+        # 梯度下降
+        for i in range(self.n_iterations):
+            y_pred = X.dot(self.w)
+
+            w_reg = np.insert(self.w[1:, :], 0, 0, axis=0)
+            loss = np.mean(0.5 * (y_pred - y) ** 2) + self.alpha / (2 * m_samples) * float(w_reg.T.dot(w_reg))  # 计算loss
+            # print(loss)
+            self.training_errors.append(loss)
+            w_grad = X.T.dot(y_pred - y) / m_samples + self.alpha / m_samples * w_reg  # (y_pred - y).T.dot(X)，计算梯度
+            self.w = self.w - self.learning_rate * w_grad  # 更新权值w
 
     def predict(self, X):
         X = np.insert(X, 0, 1, axis=1)
+        X = X / self.scaling_X
         y_pred = X.dot(self.w)
         return y_pred
 
@@ -102,15 +97,19 @@ class LinearRegression():
 
 
 def main():
-    X, y = make_regression(n_samples=100, n_features=1, noise=20)
+    housing = fetch_california_housing()
+    X = housing.data
+    y = housing.target
+    # m_samples, n_features = np.shape(X)
+    # m_samples, n_features = housing.data.shape
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4)
-    n_samples, n_features = np.shape(X)
+    X_train, X_cv, X_test, y_train, y_cv, y_test = train_cv_test_split(X, y, seed=1)
 
     # 可自行设置模型参数，如正则化，梯度下降轮数学习率等
-    model = LinearRegression(n_iterations=3000, regularization=l2_regularization(alpha=0.5))
+    model = LinearRegression(n_iterations=40000, learning_rate=0.0001, alpha=0.04)
 
     model.fit(X_train, y_train)
+
 
     # Training error plot 画loss的图
     n = len(model.training_errors)
@@ -121,12 +120,25 @@ def main():
     plt.xlabel('Iterations')
     plt.show()
 
+
+    y_pred = model.predict(X_cv)
+    y_pred = np.reshape(y_pred, y_cv.shape)
+
+    loss = calculate_loss(y_cv, y_pred)
+    print("loss:", loss)
+
     y_pred = model.predict(X_test)
     y_pred = np.reshape(y_pred, y_test.shape)
+
+    loss = calculate_loss(y_test, y_pred)
+    print("loss:", loss)
+
+
 
     mse = mean_squared_error(y_test, y_pred)
     print("Mean squared error: %s" % (mse))
 
+    '''
     y_pred_line = model.predict(X)
 
     # Color map
@@ -142,6 +154,7 @@ def main():
     plt.ylabel('Temperature in Celcius')
     plt.legend((m1, m2), ("Training data", "Test data"), loc='lower right')
     plt.show()
+    '''
 
 
 if __name__ == "__main__":
