@@ -101,13 +101,15 @@ def standardize(X):
     return X_std
 
 
-def train_test_split(X, y, test_size=0.5, shuffle=True, seed=None):
+def train_test_split(X, y, test_size=0.3, shuffle=True, seed=None):
     """ Split the data into train and test sets """
     if shuffle:
         X, y = shuffle_data(X, y, seed)
     # Split the training data from test data in the ratio specified in
     # test_size
-    split_i = len(y) - int(len(y) // (1 / test_size))
+    train_size = 1 - test_size
+    m_samples, n_features = X.shape
+    split_i = int(m_samples * train_size)
     X_train, X_test = X[:split_i], X[split_i:]
     y_train, y_test = y[:split_i], y[split_i:]
 
