@@ -252,7 +252,6 @@ class LogisticRegressionScale():
     def predict(self, X):
         # 标准化每一列
         X = (X - self.column_means) / self.column_stds
-
         X = np.insert(X, 0, 1, axis=1)
         h_x = X.dot(self.w)
         y_pred = np.round(sigmoid(h_x))
@@ -260,6 +259,8 @@ class LogisticRegressionScale():
 
     # 用于计算AUC值
     def getScore(self, X):
+        # 标准化每一列
+        X = (X - self.column_means) / self.column_stds
         X = np.insert(X, 0, 1, axis=1)
         h_x = X.dot(self.w)
         return sigmoid(h_x)
@@ -379,12 +380,8 @@ def getDataFromModule():
 
 def main():
     # Load dataset
-    X, y = getDataFromModule()
+    X, y = getBreastCancerDataset()
     noLambdaTest(X, y)
-    '''
-    X, y = getDataFromModule()
-    test(X, y)
-    '''
 
 
 if __name__ == "__main__":
